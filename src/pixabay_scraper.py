@@ -1,19 +1,73 @@
 import os
+import shutil
 import time
 from pathlib import Path
 
 import requests
-import undetected_chromedriver as uc
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
+try:
+    import undetected_chromedriver as uc
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.support.ui import WebDriverWait
+except ModuleNotFoundError:
+    uc = None
+    By = None
+    EC = None
+    WebDriverWait = None
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "solar_panel_images" / "scraped"
+VALID_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 KEYWORDS = ["solar", "panel", "sun", "energy", "photovoltaic", "placa", "paneles"]
 
 
+def _resolve_output_dir(output_dir: str | Path) -> Path:
+    """Normaliza la carpeta destino y evita guardar imágenes sueltas bajo solar_panel_images/."""
+    folder = Path(output_dir).resolve()
+    if folder.name == "solar_panel_images" and folder.exists() and folder.is_dir():
+        return folder / "scraped"
+    return folder
+
+
+def _cleanup_orphaned_scraped_images(image_root: str | Path) -> list[str]:
+    """Borra imágenes sueltas que hayan quedado en la raíz de solar_panel_images/."""
+    root = Path(image_root).resolve()
+    if not root.exists() or not root.is_dir():
+        return []
+
+    removed: list[str] = []
+    for path in sorted(root.iterdir()):
+        if not path.is_file() or path.name == ".DS_Store":
+            continue
+        if path.suffix.lower() in VALID_IMAGE_EXTENSIONS:
+            path.unlink()
+            removed.append(path.as_posix())
+    return removed
+
+
+def find_browser_executable() -> str | None:
+    """Devuelve la ruta a un navegador Chrome/Chromium instalado en el sistema."""
+    candidates = [
+        "google-chrome",
+        "google-chrome-stable",
+        "chromium",
+        "chromium-browser",
+        "chrome",
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+        "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+    ]
+    for candidate in candidates:
+        resolved = shutil.which(candidate) if candidate not in {"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Chromium.app/Contents/MacOS/Chromium", "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"} else candidate
+        if resolved and Path(resolved).exists():
+            return resolved
+    return None
+
+
 def scrape_extra_solar_images(
-    output_dir: str | Path = "solar_panel_images",
+    output_dir: str | Path = DEFAULT_OUTPUT_DIR,
     max_images: int = 20,
     scrolls: int = 4,
     headless: bool = False,
@@ -29,16 +83,47 @@ def scrape_extra_solar_images(
     Returns:
         Lista con las rutas locales de las imágenes guardadas.
     """
-    folder = Path(output_dir)
+    if uc is None or By is None or EC is None or WebDriverWait is None:
+        print(
+            "Faltan dependencias del scraper (undetected_chromedriver/selenium). "
+            "El scraper queda desactivado. La parte principal del proyecto no depende de esto."
+        )
+        return []
+
+    folder = _resolve_output_dir(output_dir)
+    if folder.parent.name == "solar_panel_images":
+        removed = _cleanup_orphaned_scraped_images(folder.parent)
+        if removed:
+            print(f"Se eliminaron {len(removed)} imágenes sueltas de la raíz de solar_panel_images/: {removed}")
+
     folder.mkdir(parents=True, exist_ok=True)
+
+    browser_path = find_browser_executable()
+    if browser_path is None:
+        print(
+            "No se encontró Chrome/Chromium instalado en este equipo. "
+            "El scraper de imágenes queda desactivado. "
+            "La parte principal del proyecto no depende de esto."
+        )
+        return []
 
     options = uc.ChromeOptions()
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-gpu")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--no-sandbox")
     if headless:
         options.add_argument("--headless=new")
 
-    driver = uc.Chrome(options=options)
+    try:
+        driver = uc.Chrome(options=options, browser_executable_path=browser_path)
+    except Exception as exc:
+        print(
+            "No se pudo iniciar Chrome para el scraper. "
+            f"Detalle: {exc}. Instala Chrome/Chromium o revisa la versión del navegador."
+        )
+        return []
+
     image_urls: list[str] = []
     saved_files: list[str] = []
     url = "https://pixabay.com/images/search/solar%20panel/"
@@ -121,4 +206,4 @@ def scrape_extra_solar_images(
 
 
 if __name__ == "__main__":
-    scrape_extra_solar_images(output_dir="solar_panel_images", max_images=20, scrolls=4)
+    scrape_extra_solar_images(output_dir=DEFAULT_OUTPUT_DIR, max_images=20, scrolls=4)

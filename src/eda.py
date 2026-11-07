@@ -7,6 +7,8 @@ import pandas as pd
 import seaborn as sns
 from PIL import Image
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
 
 def eda_data_quality(df: pd.DataFrame) -> None:
     """Verifica dimensiones, tipos, nulos, duplicados y distribución por split y fuente."""
@@ -125,7 +127,7 @@ def eda_outliers_and_correlations(df: pd.DataFrame) -> pd.DataFrame:
     return report_df
 
 
-def eda_plot_sample_images(df: pd.DataFrame, root_dir: str | Path = ".", n_per_class: int = 4) -> None:
+def eda_plot_sample_images(df: pd.DataFrame, root_dir: str | Path = PROJECT_ROOT, n_per_class: int = 4) -> None:
     """Visualiza una muestra de imágenes limpias y sucias cargándolas desde rutas relativas."""
     root = Path(root_dir).resolve()
     fig, axes = plt.subplots(2, n_per_class, figsize=(4 * n_per_class, 7))
@@ -147,7 +149,7 @@ def eda_plot_sample_images(df: pd.DataFrame, root_dir: str | Path = ".", n_per_c
     plt.show()
 
 
-def check_duplicate_images(df: pd.DataFrame, root_dir: str | Path = ".") -> None:
+def check_duplicate_images(df: pd.DataFrame, root_dir: str | Path = PROJECT_ROOT) -> None:
     """Detecta duplicados por fila y por contenido exacto del archivo (hash MD5)."""
     root = Path(root_dir).resolve()
 

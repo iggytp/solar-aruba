@@ -8,6 +8,9 @@ import csv
 import math
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = PROJECT_ROOT / "data"
+
 
 def numero(valor):
     try:
@@ -18,9 +21,12 @@ def numero(valor):
 
 
 def main():
-    carpeta = Path(__file__).resolve().parent
-    entrada = carpeta / "aruba_cruzado_5min.csv"
-    salida = carpeta / "aruba_cruzado_5min_con_energia.csv"
+    carpeta = PROJECT_ROOT
+    entrada = DATA_DIR / "aruba_cruzado_5min.csv"
+    salida = DATA_DIR / "aruba_cruzado_5min_con_energia.csv"
+    if not entrada.exists():
+        print(f"No existe el CSV de entrada en '{entrada}'.")
+        return
     nuevas = [
         "wind_speed_ms", "radiacion_aproximada_wm2",
         "temperatura_celda_estimada_c", "potencia_limpia_mw",

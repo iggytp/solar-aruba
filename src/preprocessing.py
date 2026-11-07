@@ -8,6 +8,8 @@ from PIL import Image, ImageEnhance
 from sklearn.utils.class_weight import compute_class_weight
 from torch.utils.data import DataLoader, Dataset
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
 
 def transform_image(
     img: Image.Image,
@@ -43,7 +45,7 @@ class SolarImageDataset(Dataset):
     def __init__(
         self,
         df_split: pd.DataFrame,
-        root_dir: str | Path = ".",
+        root_dir: str | Path = PROJECT_ROOT,
         is_train: bool = False,
         image_size: tuple[int, int] = (224, 224),
     ):
@@ -69,7 +71,7 @@ class SolarImageDataset(Dataset):
 
 def build_dataloaders(
     df: pd.DataFrame,
-    root_dir: str | Path = ".",
+    root_dir: str | Path = PROJECT_ROOT,
     image_size: tuple[int, int] = (224, 224),
     batch_size: int = 32,
     num_workers: int = 0,
@@ -88,7 +90,11 @@ def build_dataloaders(
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     y_train = df_train["es_sucio"].to_numpy()
-    weights = compute_class_weight(class_weight="balanced", classes=np.array([0, 1]), y=y_train)
+    unique_labels = np.unique(y_train)
+    if len(unique_labels) < 2:
+        weights = np.ones(2, dtype=np.float32)
+    else:
+        weights = compute_class_weight(class_weight="balanced", classes=np.array([0, 1]), y=y_train)
     class_weights_tensor = torch.tensor(weights, dtype=torch.float32)
 
     print(f"=== DATALOADERS LISTOS (Resolución: {image_size}, Batch: {batch_size}) ===")

@@ -1,14 +1,19 @@
 import json
 import os
 import time
+from pathlib import Path
+
 import pandas as pd
 import requests
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = PROJECT_ROOT / "data"
 
 # 1. Configuración de parámetros y fechas (ajustadas al dataset de Aruba)
 START_DATE = "2025-09-01"
 END_DATE = "2026-09-18"
-STATIONS_FILE = "aruba_stations.json"  # Ruta a vuestro archivo de estaciones
-OUTPUT_CSV = "data/aruba_solar_radiation.csv"
+STATIONS_FILE = DATA_DIR / "aruba_stations.json"  # Ruta a vuestro archivo de estaciones
+OUTPUT_CSV = DATA_DIR / "aruba_solar_radiation.csv"
 
 # Endpoint del archivo histórico de radiación solar de Open-Meteo
 OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
@@ -25,9 +30,10 @@ HOURLY_VARIABLES = [
 ]
 
 
-def load_stations(filepath: str):
+def load_stations(filepath: str | Path):
   """Carga las estaciones meteorológicas con sus coordenadas."""
-  if not os.path.exists(filepath):
+  filepath = Path(filepath)
+  if not filepath.exists():
     # Estaciones por defecto si el archivo no está en la raíz
     return [
         {
@@ -94,7 +100,7 @@ def fetch_station_solar_data(station: dict, start_date: str, end_date: str):
 
 
 def main():
-  os.makedirs("data", exist_ok=True)
+  DATA_DIR.mkdir(parents=True, exist_ok=True)
   stations = load_stations(STATIONS_FILE)
 
   all_records = []

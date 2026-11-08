@@ -279,7 +279,10 @@ def ejecutar(args):
         sid = str(lectura.get("station_id", ""))
         if sid not in seleccion:
             continue
-        t = fecha(lectura["timestamp"])
+        #t = fecha(lectura["timestamp"])
+        # Corrección: los timestamps del JSON se interpretan como hora local de Aruba (UTC-4).
+        # Se suman 4 horas para convertirlos a UTC y cruzarlos con la radiación.
+        t = fecha(lectura["timestamp"]) + timedelta(hours=4)
         if t.minute % 5 or t.second or t.microsecond:
             raise ValueError(f"Lectura fuera de la rejilla de cinco minutos: {sid}, {t}")
         if sid not in limites_lecturas:

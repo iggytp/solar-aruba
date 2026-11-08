@@ -1,6 +1,14 @@
 # Solar Aruba
 
-Proyecto para detectar suciedad en placas solares a partir de imágenes. El objetivo es clasificar si una imagen de panel fotovoltaico está limpia o sucia usando aprendizaje automático, análisis de datos y preprocesamiento de imágenes.
+Proyecto para detectar suciedad en placas solares a partir de imágenes. El objetivo es clasificar si una imagen de panel fotovoltaico está limpia o sucia usando aprendizaje automático, análisis de datos y preprocesamiento de imágenes. Además, realizar predicciones a futuro sobre el consumo/generación eléctrica a partir de los registros meteorológicos y el histórico reciente de consumo
+
+## Qué contienen los datos
+
+- Meteorología del archivo original del equipo y catálogo de estaciones de Aruba.
+- Segunda fuente: [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api), para radiación y nubosidad horarias. La integración usa estación e instante UTC; la radiación se repite dentro de cada hora. Son valores del recurso solar procedentes de una API histórica, sin acreditar medición directa en una planta.
+- Rama visual independiente: [asdmd/PVSDL_DATASET](https://huggingface.co/datasets/asdmd/PVSDL_DATASET), versión `adb5be58b27d58f3631496df187817380b0b75de`. El inventario contiene 1.700 imágenes; la fuente documenta 0 limpia y 1 sucia en el nombre. No existen claves verificadas para unir esas fotos con las estaciones o fechas de Aruba.
+
+La energía es un escenario calculado con 7,5 MW nominales y factor de suciedad 1, no generación real. Los parámetros y las fórmulas están documentados. UV presenta una discrepancia entre su perfil horario y el solar: se conserva como dato de referencia y se excluye de los predictores.
 
 ## Descripción del proyecto
 
@@ -119,7 +127,7 @@ Una forma sencilla es usar `huggingface_hub`:
 python - <<'PY'
 from huggingface_hub import snapshot_download
 
-repo_id = "<ID_DEL_DATASET_PVSL>"
+repo_id = "asdmd/PVSDL_DATASET"
 snapshot_download(
     repo_id=repo_id,
     repo_type="dataset",
@@ -133,7 +141,7 @@ También puedes usar `datasets` si el dataset está publicado con ese formato:
 ```python
 from datasets import load_dataset
 
-ds = load_dataset("<ID_DEL_DATASET_PVSL>")
+ds = load_dataset("asdmd/PVSDL_DATASET")
 print(ds)
 ```
 
@@ -157,30 +165,15 @@ Esto crea el archivo:
 data/pvsoiling_dataframe.pkl
 ```
 
-### B. Crear los DataLoaders para entrenamiento
 
-```bash
-python - <<'PY'
-import sys
-sys.path.insert(0, '.')
-from src.preprocessing import build_dataloaders
-from src.solar_dataset import build_solar_dataframe
-
-# Si aún no está generado:
-df = build_solar_dataframe(root_dir='.')
-loaders = build_dataloaders(df=df, root_dir='.', batch_size=32)
-print(loaders['train_loader'])
-PY
-```
-
-### C. Ejecutar notebooks
+### B. Ejecutar notebooks
 
 Abre los cuadernos desde la carpeta `notebooks/` y ejecuta las celdas en orden:
 
 - [notebooks/etl_eda_preprocesamiento_imagenes.ipynb](notebooks/etl_eda_preprocesamiento_imagenes.ipynb)
 - [notebooks/EDA_Solar_Aruba.ipynb](notebooks/EDA_Solar_Aruba.ipynb)
 
-## 5) Scraper de imágenes extra (opcional)
+## 5) Scraper de imágenes extra
 
 El scraper opcional de Pixabay descarga imágenes adicionales para enriquecer el conjunto. Requiere navegador Chrome/Chromium y las dependencias instaladas desde `requirements.txt`.
 

@@ -27,7 +27,7 @@ solar-aruba/
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
-├── .venv/                     # entorno virtual local (no se sube a Git)
+├── .venv/                     
 ├── src/
 │   ├── eda.py
 │   ├── extraccion_radiacion_aruba.py
